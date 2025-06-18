@@ -49,7 +49,7 @@ set.seed(123)
 Bahrain <- fread("indicators_bhr.csv", skip = 1, 
                  colClasses = c("#date+year" = "integer", 
                                 "#indicator+value+num" = "numeric"))
-Czech_Republic <- fread("indicators_cze.csv", skip = 1, 
+CzechRepublic <- fread("indicators_cze.csv", skip = 1, 
                         colClasses = list(character = 1:2, 
                                           integer = 3, numeric = 6))
 Algeria <- fread("indicators_dza.csv", skip = 1)
@@ -63,7 +63,7 @@ Prose: The datasets for Bahrain, Czech Republic, and Algeria are loaded using `f
 
 ```{r}
 # Merging the datasets with data.table
-CompleteData <- rbindlist(list(Bahrain, Czech_Republic, Algeria), 
+CompleteData <- rbindlist(list(Bahrain, CzechRepublic, Algeria), 
                            use.names = TRUE, fill = TRUE)
 ```
 
