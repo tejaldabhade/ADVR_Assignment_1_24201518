@@ -1,0 +1,260 @@
+---
+title: "Economic & Environmental Trends Analysis"
+subtitle: "The data.table Analysis For Algeria, Bahrain & Czech Republic"
+author: "Tejal Dabhade & 24201518"
+date: today
+format: 
+  beamer: 
+    template: header_beamer.tex
+    toc: false
+fontsize: 8pt
+execute: 
+  eval: true
+  echo: true
+  message: false
+  warning: false
+  size: 5
+---
+
+```{r, warning=FALSE, include=FALSE}
+library(data.table)
+library(dplyr)
+library(ggplot2)
+library(latex2exp)
+library(plotly)
+require(directlabels)
+require(viridis)
+require(forecast)
+require(ggplot2)
+library(kableExtra)
+library(tidyr)
+library(readr)
+library(skimr)
+library(knitr)
+set.seed(123)
+```
+
+## Introduction
+
+*This analysis explores key indicators across three countries using 'data.table' for efficient data manipulation. The analysis focus on economic, environmental, health and energy metrics, leveraging 'keyby' attrobute for grouped summaries and ggplot2 for visualization."*
+
+*Furthermore, The analysis utilizes three datasets corresponding to the countries of Bahrain, the Czech Republic, and Algeria.*
+
+## Task 1: Data Loading & Merging
+
+#### Loading of The Data
+
+```{r}
+# Loading the data with data.table and assign classes
+Bahrain <- fread("indicators_bhr.csv", skip = 1, 
+                 colClasses = c("#date+year" = "integer", 
+                                "#indicator+value+num" = "numeric"))
+Czech_Republic <- fread("indicators_cze.csv", skip = 1, 
+                        colClasses = list(character = 1:2, 
+                                          integer = 3, numeric = 6))
+Algeria <- fread("indicators_dza.csv", skip = 1)
+```
+
+Prose: The datasets for Bahrain, Czech Republic, and Algeria are loaded using `fread()` function from the is used here for efficient loading and to explicitly set column classes for avoiding the type inference errors
+
+## Task 2: Merging of Data
+
+#### Merging The Data
+
+```{r}
+# Merging the datasets with data.table
+Complete_Data <- rbindlist(list(Bahrain, Czech_Republic, Algeria), 
+                           use.names = TRUE, fill = TRUE)
+```
+
+Prose: The three country datasets are combined using rbindlist() function to create one unified Complete_Data table to ensures the consistency in column names and handling of the missing columns
+
+## Task 3: Data Exploration
+
+1\] The summary of structure and missing values in combined data
+
+The skimr() is use to generates a complete summary for showing details about the data, empty slots and statistical values. To ensure the slide is easy to read, only a few needed columns are chosen and shown with custom kableExtra styles.
+
+```{r fig.width=4, fig.height=3}
+skim_summary <- skim(Complete_Data)
+```
+
+```{r, fig.width=5, fig.height=3}
+skim_summary %>%
+  select(skim_type, skim_variable, n_missing, complete_rate, 
+         character.min, character.max) %>% 
+  kable(caption = "Table 1: The Summary of the Data", row.names = FALSE) %>%
+  kable_styling(font_size = 5,
+                position = "left",
+                latex_options = c("striped", "scale_down", 
+                "hold_position", "condensed"))
+
+
+```
+
+## Interpretation
+
+From the above result, it is evident that the dataset Complete_Data has 205,999 rows and 6 columns, each mostly being character or numeric types. All columns are filled out and complete and numeric variables such as #indicator+value+num are varied, signaling many unique values for each indicator across years and countries. From 1960 to 2024, information is gathered in Bahrain, Algeria and the Czech Republic, making the dataset very detailed over time.
+
+## Contd..
+
+2\] Checking the indicators available for each country, to assess data richness
+
+```{r fig.width=4, fig.height=3}
+# Indicators available per country
+Complete_Data[, 
+.(indicators_available = uniqueN(`#indicator+name`)), 
+              by = `#country+name`]
+```
+
+Algeria has the highest number of unique indicators (2306), followed by the Czech Republic (2056) and Bahrain (1945) which inturns indicate that Algeria’s dataset is the most extensive in terms of indicator diversity.
+
+## Contd..
+
+3\] Getting the Overview of the Combined Data
+
+```{r, fig.width=4, fig.height=3, results='asis'}
+# Checking The structure & column Types
+StructureSummary_Result <- capture.output(
+  str(Complete_Data, give.attr = FALSE, vec.len = 1))
+cat("```", "verbatim", "\n", paste(StructureSummary_Result, 
+collapse = "\n"), "\n```")
+```
+
+The dataset consist 205,999 observations and 6 variables, which includes country name/code, year, indicator name/code, and numeric values. Most of the variables are character types, with two numerical columns representing year and indicator values.
+
+## Task 4: Analysis Using Key Metrics By Country
+
+For this task, there are two major indicators are selected. The share of rural areas with electricity access was selected to look at changes in rural development and infrastructure equality.
+
+Fertilizer Application Rate (in kg/hectare) was used to study the use of agricultural inputs and sustainability steps taken by regions.
+
+With data.table, both fast filtering and grouping using keyby was performed to check trends in different countries. Using time-series plots, the patterns and differences in development indicators for Algeria, Bahrain and the Czech Republic were made clear.
+
+## Why These Parameters Are Choosen
+
+It reflects important improvements in infrastructure, how people live and how much the government is investing in rural areas. With the help of that, it is feasible to measure how access has evolved in Algeria, Bahrain and the Czech Republic and notice any changes.
+
+Also, farmers use fertilizers to help increase agricultural activity, assure enough food for people and safeguard the environment. By looking at this data, you can learn if a country is supporting farming and whether its methods are becoming more useful or have stopped changing.
+
+## Setting The Key and Analyzing The Indicator Trends Over Time
+
+Firstly, establishing a key that combines the country and year to do data operations smoothly. Further narrowing down the data to concentrate on rural electricity access. Using the data.table programming to find the average, minimum and maximum access values for each country using all the available years of data which allow to follow accessibility trends that last over time.
+
+```{r}
+# Setting the key for efficient operations
+setkey(Complete_Data, `#country+name`, `#date+year`)
+
+# The_Focus_indicator: "Access to electricity"
+Electricity_Data <- 
+Complete_Data[`#indicator+name` == "Access to electricity, rural (% of rural population)"]
+
+# Summarising the average access over decades
+Electricity_Summary <- Electricity_Data[, .(
+  Avg_Access = mean(`#indicator+value+num`, na.rm = TRUE),
+  Min_Access = min(`#indicator+value+num`, na.rm = TRUE),
+  Max_Access = max(`#indicator+value+num`, na.rm = TRUE),
+  data_points = .N
+), keyby = .(`#country+name`)]
+```
+
+## Time Series Analysis of Fertilizer Consumption by Country
+
+Filtering the data to concentrate on fertilizer consumption across 3 different countries. Then, grouping the data by year and country and finding the average consumption level per hectare for each group. This allows to spot regional changes in how inputs are being used for agriculture.
+
+```{r}
+# Analyzing the "Fertilizer consumption"
+fertilizer_data <- 
+Complete_Data[`#indicator+name` ==
+"Fertilizer consumption (kilograms per hectare of arable land)"]
+
+# Calculating the yearly average fertilizer usage per country
+fertilizer_trends <- fertilizer_data[
+  , .(avg_fertilizer = mean(`#indicator+value+num`, na.rm = TRUE)), 
+  keyby = .(`#country+name`, `#date+year`)
+]
+```
+
+## Cereal Yield Analysis
+
+Analyzing the "Cereal yeild (kg/hectare) indicator by comuting the average yield for each country. In addition, selecting the highest yield per country from these results using which.max. This tells about the main numbers and the best results in grain growers’ production.
+
+```{r fig.width=4, fig.height=3}
+# Filtering the Cereal Yield indicator
+Cereal_Data <- 
+  Complete_Data[`#indicator+name` == "Cereal yield (kg per hectare)"]
+
+# Computing the average cereal yield per country using keyby
+Avg_Cereal_Yield <- 
+Cereal_Data[, .(Avg_Yield = mean(`#indicator+value+num`, na.rm = TRUE)), 
+                                keyby = "#country+name"]
+
+# Compute year of maximum yield for each country
+Max_Cereal_Yield <- Cereal_Data[, .SD[which.max(`#indicator+value+num`)], 
+                                keyby = "#country+name"]
+```
+
+## Task 5: 
+
+#### Results
+
+```{r}
+# Printing the results
+print(Avg_Cereal_Yield)
+print(Max_Cereal_Yield)
+```
+
+## Interpretation
+
+From the result table above it is evident that the Czech Republic’s average cereal yield (\~4852 kg/ha) was much greater than the value for Algeria (\~968 kg/ha). Similarly, Czech Republic reached an all-time yield of 6317 kg/ha in 2016, but Algeria achieved its highest in 2018 at only 1952 kg/ha. It demonstrates that the Czech Republic’s farming is becoming more productive.
+
+## Plot 1 – Rural Electricity Access Over Time
+
+```{r fig.width=4, fig.height=2}
+ggplot(Electricity_Data, aes(x = `#date+year`, 
+y = `#indicator+value+num`, color = `#country+name`)) +
+  geom_line(linewidth = 1) +
+  labs(title = "Rural Electricity Access Over Time",
+       x = "Year", y = "Access (%)", color = "Country") +
+  theme_minimal()
+```
+
+## Interpretation
+
+According to the plot, Czech Republic and Bahrain have always provided rural areas with almost all the electricity they need since 1990. Meanwhile, the population of Algeria has consistently increased its access, moving from an access point rate of less than 98% in early 2000s to nearly 100% by 2023. This shows Algeria has carried out successful infrastructure development over the years.
+
+## Plot 2 – Fertilizer Consumption Over Time
+
+```{r, fig.width=4, fig.height=2}
+ggplot(fertilizer_trends, aes(x = `#date+year`,
+y = avg_fertilizer, color = `#country+name`)) +
+  geom_line(size = 1.2) +
+  labs(title = "Fertilizer Consumption per Hectare Over Time",
+       x = "Year", y = "Fertilizer (kg/hectare)", color = "Country") +
+  theme_minimal()
+
+```
+
+## Interpretation
+
+From the resulted plot, it is clear that the fertilizer use by farmers in Bahrain has been strongly increasing and is now above 1500 kg/ha per hectare. The Czech Republic experiences a regular and steady increase inpatterns, whereas Algeria remains with small and stable usage over time. Bahrain’s farmers use more fertilizers, but Algeria probably uses fewer.
+
+## Plot 3 - Plotting Cereal Yield Trends
+
+```{r, fig.width=4, fig.height=2}
+# Creating a line plot over time by country
+ggplot(Cereal_Data, aes(x = `#date+year`, y = `#indicator+value+num`, 
+                        color = `#country+name`)) +
+  geom_line(size = 1.2) +
+  labs(title = "The Cereal Yield Over Time", 
+       x = "Year", 
+       y = "Yield (kg per hectare)", 
+       color = "Country") +
+  theme_minimal()
+```
+
+## Interpretation 
+
+The Cereal yield data indicator is used to create a line chart depicting the chnage over the years. The data specifically reveal the changes in cereal yield from year to year in Algeria, Bahrain and the Czech Republic. Distinct colors are added so each country’s trend line stands out easily.
+
+The plot demonstrates the historical development of cereal yield (kg per hectare) for both Algeria and the Czech Republic. Cereal production in the Czech Republic has improved a lot, rising steadily from nearly 4,000 to more than 6,000 kg/hectare. By comparison, Algeria has relatively poor yields, often below 2,000 kg/hectare and its growth has been minor for many decades. These results demonstrate that one country is much more efficient in agricultural production than the other.
