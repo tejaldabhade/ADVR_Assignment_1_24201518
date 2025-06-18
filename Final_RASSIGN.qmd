@@ -63,11 +63,11 @@ Prose: The datasets for Bahrain, Czech Republic, and Algeria are loaded using `f
 
 ```{r}
 # Merging the datasets with data.table
-Complete_Data <- rbindlist(list(Bahrain, Czech_Republic, Algeria), 
+CompleteData <- rbindlist(list(Bahrain, Czech_Republic, Algeria), 
                            use.names = TRUE, fill = TRUE)
 ```
 
-Prose: The three country datasets are combined using rbindlist() function to create one unified Complete_Data table to ensures the consistency in column names and handling of the missing columns
+Prose: The three country datasets are combined using rbindlist() function to create one unified CompleteData table to ensures the consistency in column names and handling of the missing columns
 
 ## Task 3: Data Exploration
 
@@ -76,7 +76,7 @@ Prose: The three country datasets are combined using rbindlist() function to cre
 The skimr() is use to generates a complete summary for showing details about the data, empty slots and statistical values. To ensure the slide is easy to read, only a few needed columns are chosen and shown with custom kableExtra styles.
 
 ```{r fig.width=4, fig.height=3}
-skim_summary <- skim(Complete_Data)
+skim_summary <- skim(CompleteData)
 ```
 
 ```{r, fig.width=5, fig.height=3}
@@ -94,7 +94,7 @@ skim_summary %>%
 
 ## Interpretation
 
-From the above result, it is evident that the dataset Complete_Data has 205,999 rows and 6 columns, each mostly being character or numeric types. All columns are filled out and complete and numeric variables such as #indicator+value+num are varied, signaling many unique values for each indicator across years and countries. From 1960 to 2024, information is gathered in Bahrain, Algeria and the Czech Republic, making the dataset very detailed over time.
+From the above result, it is evident that the dataset CompleteData has 205,999 rows and 6 columns, each mostly being character or numeric types. All columns are filled out and complete and numeric variables such as #indicator+value+num are varied, signaling many unique values for each indicator across years and countries. From 1960 to 2024, information is gathered in Bahrain, Algeria and the Czech Republic, making the dataset very detailed over time.
 
 ## Contd..
 
@@ -102,7 +102,7 @@ From the above result, it is evident that the dataset Complete_Data has 205,999 
 
 ```{r fig.width=4, fig.height=3}
 # Indicators available per country
-Complete_Data[, 
+CompleteData[, 
 .(indicators_available = uniqueN(`#indicator+name`)), 
               by = `#country+name`]
 ```
@@ -116,7 +116,7 @@ Algeria has the highest number of unique indicators (2306), followed by the Czec
 ```{r, fig.width=4, fig.height=3, results='asis'}
 # Checking The structure & column Types
 StructureSummary_Result <- capture.output(
-  str(Complete_Data, give.attr = FALSE, vec.len = 1))
+  str(CompleteData, give.attr = FALSE, vec.len = 1))
 cat("```", "verbatim", "\n", paste(StructureSummary_Result, 
 collapse = "\n"), "\n```")
 ```
@@ -143,11 +143,11 @@ Firstly, establishing a key that combines the country and year to do data operat
 
 ```{r}
 # Setting the key for efficient operations
-setkey(Complete_Data, `#country+name`, `#date+year`)
+setkey(CompleteData, `#country+name`, `#date+year`)
 
 # The_Focus_indicator: "Access to electricity"
 Electricity_Data <- 
-Complete_Data[`#indicator+name` == "Access to electricity, rural (% of rural population)"]
+CompleteData[`#indicator+name` == "Access to electricity, rural (% of rural population)"]
 
 # Summarising the average access over decades
 Electricity_Summary <- Electricity_Data[, .(
@@ -165,7 +165,7 @@ Filtering the data to concentrate on fertilizer consumption across 3 different c
 ```{r}
 # Analyzing the "Fertilizer consumption"
 fertilizer_data <- 
-Complete_Data[`#indicator+name` ==
+CompleteData[`#indicator+name` ==
 "Fertilizer consumption (kilograms per hectare of arable land)"]
 
 # Calculating the yearly average fertilizer usage per country
@@ -182,7 +182,7 @@ Analyzing the "Cereal yeild (kg/hectare) indicator by comuting the average yield
 ```{r fig.width=4, fig.height=3}
 # Filtering the Cereal Yield indicator
 Cereal_Data <- 
-  Complete_Data[`#indicator+name` == "Cereal yield (kg per hectare)"]
+  CompleteData[`#indicator+name` == "Cereal yield (kg per hectare)"]
 
 # Computing the average cereal yield per country using keyby
 Avg_Cereal_Yield <- 
